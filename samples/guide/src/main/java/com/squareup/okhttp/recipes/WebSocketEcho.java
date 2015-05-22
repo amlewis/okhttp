@@ -27,21 +27,28 @@ public final class WebSocketEcho implements WebSocketListener {
     client.getDispatcher().getExecutorService().shutdown();
   }
 
-  @Override public void onOpen(WebSocket webSocket, Response response)
-      throws IOException {
-    webSocket.sendMessage(TEXT, new Buffer().writeUtf8("Hello..."));
-    webSocket.sendMessage(TEXT, new Buffer().writeUtf8("...World!"));
-    webSocket.sendMessage(BINARY, new Buffer().writeInt(0xdeadbeef));
-    webSocket.close(1000, "Goodbye, World!");
+  @Override public void onOpen(final WebSocket webSocket, Response response) {
+    new Thread() {
+      @Override public void run() {
+        try {
+          webSocket.sendMessage(TEXT, new Buffer().writeUtf8("Hello..."));
+          webSocket.sendMessage(TEXT, new Buffer().writeUtf8("...World!"));
+          webSocket.sendMessage(BINARY, new Buffer().writeInt(0xdeadbeef));
+          webSocket.close(1000, "Goodbye, World!");
+        } catch (IOException e) {
+          System.err.println("Unable to send messages: " + e.getMessage());
+        }
+      }
+    }.start();
   }
 
   @Override public void onMessage(BufferedSource payload, PayloadType type) throws IOException {
     switch (type) {
       case TEXT:
-        System.out.println(payload.readUtf8());
+        System.out.println("MESSAGE: " + payload.readUtf8());
         break;
       case BINARY:
-        System.out.println(payload.readByteString().hex());
+        System.out.println("MESSAGE: " + payload.readByteString().hex());
         break;
       default:
         throw new IllegalStateException("Unknown payload type: " + type);
